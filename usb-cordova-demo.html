@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USB Cordova Plugin — Stabilization Demo</title>
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f3;
+      --bg-tertiary: #eeede8;
+      --bg-success: #eaf3de;
+      --bg-warning: #faeeda;
+      --bg-danger: #fcebeb;
+      --bg-info: #e6f1fb;
+      --text-primary: #1a1a19;
+      --text-secondary: #5f5e5a;
+      --text-tertiary: #888780;
+      --text-success: #3b6d11;
+      --text-warning: #854f0b;
+      --text-danger: #a32d2d;
+      --text-info: #185fa5;
+      --border: rgba(0,0,0,0.12);
+      --border-md: rgba(0,0,0,0.22);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font-mono: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1e1e1c;
+        --bg-secondary: #2a2a28;
+        --bg-tertiary: #232321;
+        --bg-success: #173404;
+        --bg-warning: #412402;
+        --bg-danger: #501313;
+        --bg-info: #042c53;
+        --text-primary: #e8e6de;
+        --text-secondary: #9c9a92;
+        --text-tertiary: #6a6963;
+        --text-success: #c0dd97;
+        --text-warning: #fac775;
+        --text-danger: #f7c1c1;
+        --text-info: #b5d4f4;
+        --border: rgba(255,255,255,0.1);
+        --border-md: rgba(255,255,255,0.2);
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .panel {
+      background: var(--bg-primary);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: var(--radius-md);
+      letter-spacing: 0.03em;
+    }
+    .badge-connected    { background: var(--bg-success); color: var(--text-success); }
+    .badge-disconnected { background: var(--bg-danger);  color: var(--text-danger); }
+    .badge-reconnecting { background: var(--bg-warning); color: var(--text-warning); }
+    .badge-permission   { background: var(--bg-info);    color: var(--text-info); }
+
+    .state-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .dot-connected    { background: var(--text-success); }
+    .dot-disconnected { background: var(--text-danger); }
+    .dot-reconnecting { background: var(--text-warning); animation: blink 0.8s ease-in-out infinite; }
+    .dot-permission   { background: var(--text-info); }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .metric {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+    }
+    .metric-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+    .metric-value { font-size: 22px; font-weight: 500; color: var(--text-primary); }
+    .metric-sub   { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+
+    /* Architecture layers */
+    .layer {
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.25s, border-color 0.25s, color 0.25s;
+    }
+    .layer .layer-code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .layer.active {
+      border-color: rgba(56,138,221,0.5);
+      background: var(--bg-info);
+      color: var(--text-info);
+    }
+    .layer.active .layer-code { color: var(--text-info); opacity: 0.7; }
+    .layer-arrow {
+      text-align: center;
+      font-size: 10px;
+      color: var(--text-tertiary);
+      margin: 1px 0;
+    }
+
+    /* Reconnect flow */
+    .flow-steps {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .flow-step {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: var(--radius-md);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      transition: background 0.2s, color 0.2s;
+    }
+    .flow-step.active { background: var(--bg-warning); color: var(--text-warning); }
+    .flow-step.done   { background: var(--bg-success); color: var(--text-success); }
+    .flow-arrow { font-size: 11px; color: var(--text-tertiary); }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      background: transparent;
+      border: 0.5px solid var(--border-md);
+      border-radius: var(--radius-md);
+      padding: 7px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-primary);
+      font-family: inherit;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:hover  { background: var(--bg-secondary); }
+    .btn:active { transform: scale(0.98); }
+    .btn-success { border-color: rgba(59,109,17,0.4); color: var(--text-success); }
+    .btn-danger  { border-color: rgba(163,45,45,0.4); color: var(--text-danger); }
+    .btn-muted   { color: var(--text-secondary); }
+
+    /* Log */
+    .log-wrap { max-height: 220px; overflow-y: auto; }
+    .log-entry {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      padding: 4px 0;
+      border-bottom: 0.5px solid var(--border);
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-ts { color: var(--text-tertiary); margin-right: 8px; user-select: none; }
+    .log-entry.warn    { color: var(--text-warning); }
+    .log-entry.error   { color: var(--text-danger); }
+    .log-entry.success { color: var(--text-success); }
+    .log-entry.info    { color: var(--text-info); }
+
+    /* Android 13 compat strip */
+    .compat-strip {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .compat-pill {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: var(--bg-success);
+      color: var(--text-success);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 20px;
+      padding-bottom: 10px;
+    }
+
+    @media (max-width: 520px) {
+      .metric-grid { grid-template-columns: 1fr 1fr; }
+      .header { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>USB Cordova Plugin — Stabilization Demo</h1>
+      <div class="subtitle">Android USB Host API &nbsp;·&nbsp; Debounce + Auto-reconnect &nbsp;·&nbsp; Android 13+ (API 33)</div>
+    </div>
+    <span id="main-badge" class="badge badge-disconnected">DISCONNECTED</span>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metric-grid">
+    <div class="metric">
+      <div class="metric-label">Connection state</div>
+      <div class="metric-value" style="font-size:14px;line-height:1.6">
+        <span class="state-dot dot-disconnected" id="state-dot"></span>
+        <span id="state-text">Disconnected</span>
+      </div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Reconnect attempts</div>
+      <div class="metric-value" id="reconnect-count">0</div>
+      <div class="metric-sub">auto-recovery runs</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">USB events (total)</div>
+      <div class="metric-value" id="event-count">0</div>
+      <div class="metric-sub">debounced below</div>
+    </div>
+  </div>
+
+  <!-- Architecture layers -->
+  <div class="panel">
+    <div class="section-title">Plugin architecture layers</div>
+    <div class="layer" id="layer-js">
+      <span>Cordova JS Bridge</span>
+      <span class="layer-code">cordova.exec("UsbPlugin", "connect")</span>
+    </div>
+    <div class="layer-arrow">↓</div>
+    <div class="layer" id="layer-plugin">
+      <span>UsbPlugin.kt</span>
+      <span class="layer-code">extends CordovaPlugin</span>
+    </div>
+    <div class="layer-arrow">↓</div>
+    <div class="layer" id="layer-state">
+      <span>USBStateManager</span>
+      <span class="layer-code">State machine + debounce logic</span>
+    </div>
+    <div class="layer-arrow">↓</div>
+    <div class="layer" id="layer-service">
+      <span>UsbDeviceService</span>
+      <span class="layer-code">Persistent background service (IBinder)</span>
+    </div>
+    <div class="layer-arrow">↓</div>
+    <div class="layer" id="layer-sdk">
+      <span>Manufacturer SDK (.aar)</span>
+      <span class="layer-code">USB printer / RFID reader</span>
+    </div>
+  </div>
+
+  <!-- Reconnect flow (hidden until active) -->
+  <div class="panel" id="reconnect-panel" style="display:none">
+    <div class="section-title">Auto-reconnect sequence running</div>
+    <div class="flow-steps">
+      <div class="flow-step" id="fs1">Detect loss</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" id="fs2">Close SDK</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" id="fs3">Release USB</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" id="fs4">Wait 500ms</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" id="fs5">Rescan</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" id="fs6">Reinitialize</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="panel">
+    <div class="section-title">Simulate USB events</div>
+    <div class="btn-row">
+      <button class="btn btn-success" onclick="plugDevice()">Plug USB device</button>
+      <button class="btn btn-danger"  onclick="unplugDevice()">Unplug (bus reset)</button>
+      <button class="btn"             onclick="rapidEvents()">Rapid attach/detach ×5</button>
+      <button class="btn"             onclick="powerSurge()">Power surge</button>
+      <button class="btn btn-muted"   onclick="clearLog()">Clear log</button>
+    </div>
+    <div class="compat-strip">
+      <span class="compat-pill">API 33 ✓</span>
+      <span class="compat-pill">getParcelableExtra(class) ✓</span>
+      <span class="compat-pill">android:exported=false ✓</span>
+      <span class="compat-pill">UsbManager.requestPermission() ✓</span>
+      <span class="compat-pill">Persistent permission ✓</span>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="panel">
+    <div class="section-title">Plugin log output</div>
+    <div class="log-wrap">
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    USB Cordova Plugin Stabilization Demo &nbsp;·&nbsp; Milestone 1 &amp; 2 Architecture Preview
+  </div>
+
+</div>
+
+<script>
+  let state = 'DISCONNECTED';
+  let reconnectCount = 0;
+  let eventCount = 0;
+  let lastEventTime = 0;
+
+  function ts() {
+    const d = new Date();
+    return [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2, '0')).join(':')
+      + '.' + String(d.getMilliseconds()).padStart(3, '0');
+  }
+
+  function addLog(msg, type) {
+    const log = document.getElementById('log');
+    const el = document.createElement('div');
+    el.className = 'log-entry' + (type ? ' ' + type : '');
+    el.innerHTML = '<span class="log-ts">' + ts() + '</span>' + msg;
+    log.insertBefore(el, log.firstChild);
+    if (log.children.length > 60) log.removeChild(log.lastChild);
+  }
+
+  function setState(s) {
+    state = s;
+    const badge = document.getElementById('main-badge');
+    const dot   = document.getElementById('state-dot');
+    const txt   = document.getElementById('state-text');
+
+    const map = {
+      CONNECTED:        { cls: 'connected',    label: 'CONNECTED',        dot: 'dot-connected' },
+      DISCONNECTED:     { cls: 'disconnected', label: 'DISCONNECTED',     dot: 'dot-disconnected' },
+      RECONNECTING:     { cls: 'reconnecting', label: 'RECONNECTING',     dot: 'dot-reconnecting' },
+      PERMISSION_PENDING: { cls: 'permission', label: 'PERMISSION',       dot: 'dot-permission' },
+    };
+
+    const m = map[s];
+    badge.className = 'badge badge-' + m.cls;
+    badge.textContent = m.label;
+    dot.className = 'state-dot ' + m.dot;
+    txt.textContent = m.label.charAt(0) + m.label.slice(1).toLowerCase().replace('_', ' ');
+
+    document.getElementById('reconnect-count').textContent = reconnectCount;
+    document.getElementById('event-count').textContent = eventCount;
+
+    const all = ['layer-js', 'layer-plugin', 'layer-state', 'layer-service', 'layer-sdk'];
+    all.forEach(id => document.getElementById(id).classList.remove('active'));
+
+    if (s === 'CONNECTED') {
+      all.forEach(id => document.getElementById(id).classList.add('active'));
+    } else if (s === 'RECONNECTING') {
+      ['layer-state', 'layer-service'].forEach(id => document.getElementById(id).classList.add('active'));
+    } else if (s === 'PERMISSION_PENDING') {
+      ['layer-state'].forEach(id => document.getElementById(id).classList.add('active'));
+    }
+  }
+
+  function isDebounced() {
+    const now = Date.now();
+    if (now - lastEventTime < 1000) return true;
+    lastEventTime = now;
+    return false;
+  }
+
+  function setFlowStep(index) {
+    const steps = ['fs1','fs2','fs3','fs4','fs5','fs6'];
+    steps.forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (i < index)       el.className = 'flow-step done';
+      else if (i === index) el.className = 'flow-step active';
+      else                  el.className = 'flow-step';
+    });
+  }
+
+  function runReconnect() {
+    reconnectCount++;
+    document.getElementById('reconnect-panel').style.display = 'block';
+
+    const sequence = [
+      { delay: 0,    step: 0, msg: '[USBStateManager] onConnectionLost() — starting recovery sequence', type: 'warn' },
+      { delay: 300,  step: 1, msg: '[UsbDeviceService] Closing manufacturer SDK session', type: 'warn' },
+      { delay: 600,  step: 2, msg: '[UsbDeviceService] Releasing UsbDeviceConnection object', type: 'warn' },
+      { delay: 900,  step: 3, msg: '[USBStateManager] Waiting 500ms before rescan...', type: 'warn' },
+      { delay: 1500, step: 4, msg: '[UsbManager] getDeviceList() — API 33: getParcelableExtra(UsbDevice.class)', type: 'info' },
+      { delay: 2100, step: 5, msg: '[UsbDeviceService] Device found — reinitializing SDK session', type: 'info' },
+    ];
+
+    sequence.forEach(({ delay, step, msg, type }) => {
+      setTimeout(() => {
+        setFlowStep(step);
+        addLog(msg, type);
+        if (step === 5) {
+          setTimeout(() => {
+            setState('CONNECTED');
+            addLog('[UsbPlugin] Device stable — auto-reconnect successful ✓', 'success');
+            addLog('[USBStateManager] State: RECONNECTING → CONNECTED', 'success');
+            document.getElementById('reconnect-panel').style.display = 'none';
+          }, 700);
+        }
+      }, delay);
+    });
+  }
+
+  function plugDevice() {
+    eventCount++;
+    if (isDebounced()) {
+      addLog('[USBStateManager] Debounce: USB_DEVICE_ATTACHED ignored — event within 1000ms window', 'warn');
+      document.getElementById('event-count').textContent = eventCount;
+      return;
+    }
+    if (state === 'CONNECTED') {
+      addLog('[USBStateManager] Already connected — USB_DEVICE_ATTACHED ignored');
+      return;
+    }
+    if (state === 'RECONNECTING') {
+      addLog('[USBStateManager] Reconnect in progress — ignoring attach event', 'warn');
+      return;
+    }
+    setState('PERMISSION_PENDING');
+    addLog('[UsbReceiver] USB_DEVICE_ATTACHED received (android:exported=false, API 33+)', 'info');
+    addLog('[UsbManager] requestPermission() — modern Android 13+ permission flow', 'info');
+    setTimeout(() => {
+      addLog('[BroadcastReceiver] ACTION_USB_PERMISSION — EXTRA_PERMISSION_GRANTED = true', 'success');
+      setTimeout(() => {
+        addLog('[UsbDeviceService] UsbDeviceConnection opened — vendor: 0x1234 product: 0x5678', 'success');
+        addLog('[UsbDeviceService] Manufacturer SDK initialized — device ready', 'success');
+        setState('CONNECTED');
+        document.getElementById('event-count').textContent = eventCount;
+      }, 600);
+    }, 900);
+  }
+
+  function unplugDevice() {
+    eventCount++;
+    document.getElementById('event-count').textContent = eventCount;
+    if (state === 'DISCONNECTED') {
+      addLog('[USBStateManager] No device connected — USB_DEVICE_DETACHED ignored');
+      return;
+    }
+    if (state === 'RECONNECTING') {
+      addLog('[USBStateManager] Already in RECONNECTING state', 'warn');
+      return;
+    }
+    setState('RECONNECTING');
+    addLog('[UsbReceiver] USB_DEVICE_DETACHED / bus reset detected', 'error');
+    addLog('[USBStateManager] State: CONNECTED → RECONNECTING', 'warn');
+    runReconnect();
+  }
+
+  function rapidEvents() {
+    addLog('[Test] Simulating 5 rapid USB_DEVICE_ATTACHED events within 800ms', 'info');
+    eventCount += 5;
+    let suppressed = 0;
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        if (i === 0) {
+          lastEventTime = Date.now();
+          addLog('[UsbReceiver] USB_DEVICE_ATTACHED — event 1/5 accepted for processing', 'info');
+        } else {
+          suppressed++;
+          addLog('[USBStateManager] Debounce: USB_DEVICE_ATTACHED suppressed (event ' + (i+1) + '/5 — within 1000ms)', 'warn');
+        }
+        if (i === 4) {
+          setTimeout(() =>
+            addLog('[USBStateManager] Debounce complete — ' + suppressed + '/5 events suppressed, 1 processed ✓', 'success')
+          , 100);
+        }
+      }, i * 160);
+    }
+    document.getElementById('event-count').textContent = eventCount;
+  }
+
+  function powerSurge() {
+    if (state !== 'CONNECTED') {
+      addLog('[Test] Plug a USB device first before simulating a power surge', 'warn');
+      return;
+    }
+    eventCount++;
+    setState('RECONNECTING');
+    addLog('[Test] Simulating USB inrush current / power surge disruption', 'error');
+    addLog('[UsbDeviceConnection] IOException: device not responding (inrush current)', 'error');
+    addLog('[USBStateManager] State: CONNECTED → RECONNECTING', 'warn');
+    runReconnect();
+    document.getElementById('event-count').textContent = eventCount;
+  }
+
+  function clearLog() {
+    document.getElementById('log').innerHTML = '';
+  }
+
+  // Init
+  addLog('[Demo] USB Cordova Plugin Stabilization Demo ready', 'info');
+  addLog('[Demo] Try: Plug USB device → Unplug (bus reset) → watch auto-reconnect sequence', 'info');
+  addLog('[Demo] Or: Plug → "Rapid attach/detach" to see debounce logic in action', 'info');
+  setState('DISCONNECTED');
+</script>
+</body>
+</html>
