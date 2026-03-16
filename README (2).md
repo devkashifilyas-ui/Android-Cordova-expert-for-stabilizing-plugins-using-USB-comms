@@ -1,6 +1,6 @@
 # USB Cordova Plugin — Stabilization Demo
 
-> **Upwork Proposal Demo** for Android Cordova USB plugin stabilization work.  
+> **Demo** for Android Cordova USB plugin stabilization work.  
 > Demonstrates the exact architecture, debounce logic, and auto-reconnect sequence that will be implemented in Milestone 1 & 2.
 
 ---
@@ -209,16 +209,3 @@ fun onConnectionLost() {
 └── README.md               # This file
 ```
 
----
-
-## About
-
-This demo was built as part of an Upwork proposal for Android Cordova USB plugin stabilization work. It demonstrates:
-
-1. A clear understanding of the root cause (USB host lifecycle + SDK session management)
-2. The exact architecture that will be implemented
-3. Working simulation of debounce, auto-reconnect, and Android 13 compatibility
-
----
-
-*Built with vanilla HTML/CSS/JS — no dependencies, no build step required.*
